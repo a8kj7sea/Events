@@ -2,6 +2,15 @@
 
 A high-performance event bus architecture designed for **Java 21** environments. This system utilizes dynamic bytecode generation to minimize dispatch latency and provides an automated registration mechanism for scalable development.
 
+<p align="center">
+  <a href="https://github.com/a8kj7sea/Events/blob/main/asset/proof.mp4?raw=true">
+    <img src="https://github.com/user-attachments/assets/014fcbeb-8eed-4c7e-a10a-4321d9a2107b" width="100%" alt="Click to watch the performance test">
+  </a>
+  <br>
+</p>
+
+
+
 ---
 
 ### Technical Specifications
