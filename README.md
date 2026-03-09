@@ -1,4 +1,4 @@
-## High-Performance SpigotAPI Event System
+## | Events <sup><sub> High-Performance SpigotAPI Event System </sup></sub>
 
 A high-performance event bus architecture designed for **Java 21** environments. This system utilizes dynamic bytecode generation to minimize dispatch latency and provides an automated registration mechanism for scalable development.
 
