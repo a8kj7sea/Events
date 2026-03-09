@@ -1,7 +1,9 @@
-## | Events <sub><sup> High-Performance SpigotAPI Event System </sub></sup>
 
 
 [![](https://jitpack.io/v/a8kj7sea/Events.svg)](https://jitpack.io/#a8kj7sea/Events)
+## | Events <sub><sup> High-Performance SpigotAPI Event System </sub></sup>
+
+
 
 A high-performance event bus architecture designed for **Java 21** environments. This system utilizes dynamic bytecode generation to minimize dispatch latency and provides an automated registration mechanism for scalable development.
 
