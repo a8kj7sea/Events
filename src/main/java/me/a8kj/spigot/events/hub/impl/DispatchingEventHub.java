@@ -20,31 +20,59 @@ import java.util.*;
 public final class DispatchingEventHub implements EventHub, Listener {
 
     private final @NonNull Plugin plugin;
-    private final Map<Class<? extends Event>, List<PrioritizedHandler<? extends Event>>> dispatchMap = new HashMap<>();
+    private final Map<Class<? extends Event>, Map<EventPriority, List<PrioritizedHandler<? extends Event>>>> dispatchMap = new HashMap<>();
 
     @Override
-    @SuppressWarnings("unchecked")
     public <T extends Event> void register(@NonNull Class<T> eventClass, @NonNull SpoolPriority priority, boolean ignoreCancelled, @NonNull EventHandlerDelegate<T> handler) {
-        boolean isFirst = !dispatchMap.containsKey(eventClass);
+        EventPriority bukkitPriority = toBukkitPriority(priority);
+        PrioritizedHandler<T> prioritizedHandler = new PrioritizedHandler<>(priority, ignoreCancelled, handler);
 
-        List<PrioritizedHandler<? extends Event>> handlers = dispatchMap.computeIfAbsent(eventClass, k -> new ArrayList<>());
-        handlers.add(new PrioritizedHandler<>(priority, ignoreCancelled, handler));
-        Collections.sort(handlers);
+        boolean isFirstForPriority = storeHandler(eventClass, bukkitPriority, prioritizedHandler);
 
-        if (isFirst) {
-            EventHandlerDelegate<T> dispatcher = event -> dispatch(eventClass, event);
-            EventExecutor executor = FastExecutorFactory.create(dispatcher);
-            Bukkit.getPluginManager().registerEvent(eventClass, this, EventPriority.NORMAL, executor, plugin);
+        if (isFirstForPriority) {
+            registerWithBukkit(eventClass, bukkitPriority);
         }
     }
 
+    private EventPriority toBukkitPriority(@NonNull SpoolPriority priority) {
+        try {
+            return EventPriority.valueOf(priority.name());
+        } catch (IllegalArgumentException e) {
+            return EventPriority.NORMAL;
+        }
+    }
+
+    private <T extends Event> boolean storeHandler(Class<T> eventClass, EventPriority bukkitPriority, PrioritizedHandler<T> handler) {
+        Map<EventPriority, List<PrioritizedHandler<? extends Event>>> priorityMap =
+                dispatchMap.computeIfAbsent(eventClass, k -> new EnumMap<>(EventPriority.class));
+
+        boolean isFirstForPriority = !priorityMap.containsKey(bukkitPriority);
+
+        List<PrioritizedHandler<? extends Event>> handlers =
+                priorityMap.computeIfAbsent(bukkitPriority, k -> new ArrayList<>());
+
+        handlers.add(handler);
+        Collections.sort(handlers);
+
+        return isFirstForPriority;
+    }
+
+    private <T extends Event> void registerWithBukkit(Class<T> eventClass, EventPriority bukkitPriority) {
+        EventHandlerDelegate<T> dispatcher = event -> dispatch(eventClass, bukkitPriority, event);
+        EventExecutor executor = FastExecutorFactory.create(dispatcher);
+        Bukkit.getPluginManager().registerEvent(eventClass, this, bukkitPriority, executor, plugin);
+    }
+
     @SuppressWarnings("unchecked")
-    private <T extends Event> void dispatch(Class<T> eventClass, T event) {
-        List<PrioritizedHandler<? extends Event>> handlers = dispatchMap.get(eventClass);
-        if (handlers != null) {
-            for (PrioritizedHandler<? extends Event> prioritized : handlers) {
-                ((PrioritizedHandler<T>) prioritized).execute(event);
-            }
+    private <T extends Event> void dispatch(Class<T> eventClass, EventPriority bukkitPriority, T event) {
+        Map<EventPriority, List<PrioritizedHandler<? extends Event>>> priorityMap = dispatchMap.get(eventClass);
+        if (priorityMap == null) return;
+
+        List<PrioritizedHandler<? extends Event>> handlers = priorityMap.get(bukkitPriority);
+        if (handlers == null) return;
+
+        for (PrioritizedHandler<? extends Event> prioritized : handlers) {
+            ((PrioritizedHandler<T>) prioritized).execute(event);
         }
     }
 
